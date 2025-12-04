@@ -5,13 +5,19 @@ import json
 import sys
 import math
 
-# --- Konfigurasi ---
-FOLDER_OUTPUT = r"C:\Materix_Engine\ai_engine_materix\engine_bim_and_ifc\data\processed"
+# Lokasi folder skrip parser.py saat ini
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Naik 1 folder ke engine_bim_and_ifc/
+ENGINE_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
+
+# Path ke folder processed
+FOLDER_OUTPUT = os.path.join(ENGINE_ROOT, "data", "processed")
 
 # Daftar Tipe IFC yang TIDAK perlu diekstrak
 SKIP_TYPES = [
-    "IfcProject", "IfcSite", "IfcBuilding", "IfcBuildingStorey", 
-    "IfcSpace", "IfcOpeningElement", "IfcAnnotation", "IfcGrid", 
+    "IfcProject", "IfcSite", "IfcBuilding", "IfcBuildingStorey",
+    "IfcSpace", "IfcOpeningElement", "IfcAnnotation", "IfcGrid",
     "IfcGroup", "IfcZone", "IfcSystem", "IfcPort"
 ]
 
@@ -26,7 +32,7 @@ def get_property_value(element, possible_names):
     for rel in element.IsDefinedBy:
         if rel.is_a("IfcRelDefinesByProperties"):
             pset = rel.RelatingPropertyDefinition
-            
+
             # A. Jika Quantity Set (Angka pasti)
             if pset.is_a("IfcElementQuantity"):
                 for q in pset.Quantities:
@@ -37,7 +43,7 @@ def get_property_value(element, possible_names):
                         if q.is_a("IfcQuantityCount"): return q.CountValue
                         # Fallback untuk nilai nominal
                         if hasattr(q, "NominalValue"): return q.NominalValue.wrappedValue
-            
+
             # B. Jika Property Set (Atribut umum)
             elif pset.is_a("IfcPropertySet"):
                 for p in pset.HasProperties:
@@ -52,7 +58,7 @@ def get_property_value(element, possible_names):
 # =====================================================================
 def parse_all_objects(ifc_path):
     print(f"[*] Membuka file: {ifc_path}")
-    
+
     try:
         f = ifcopenshell.open(ifc_path)
     except Exception as e:
@@ -79,7 +85,7 @@ def parse_all_objects(ifc_path):
 
     # --- 2. Ambil SEMUA Produk ---
     all_products = f.by_type("IfcProduct")
-    
+
     print(f"[*] Total objek ditemukan: {len(all_products)}")
 
     for product in all_products:
@@ -89,7 +95,7 @@ def parse_all_objects(ifc_path):
             continue
 
         # --- 3. Logika Ekstraksi Dimensi Universal (DIPERBAIKI) ---
-        
+
         # A. STRATEGI UNTUK PANJANG (Length)
         # Menambahkan "Perimeter" dan "Girth" untuk objek seperti Slab/Floor
         list_panjang = ["Length", "NominalLength", "Span", "MajorDimension", "Perimeter", "Girth"]
@@ -101,13 +107,13 @@ def parse_all_objects(ifc_path):
         val_tinggi = get_property_value(product, list_tinggi)
 
         # C. STRATEGI UNTUK TEBAL (Thickness/Width)
-        # Hati-hati: "Width" sering ambigu. 
+        # Hati-hati: "Width" sering ambigu.
         # Untuk Slab, kita prioritaskan "Thickness" dulu baru "Width".
         if ifc_type == "IfcSlab":
              list_tebal = ["Thickness", "ConstructionThickness", "NominalThickness", "Width"]
         else:
              list_tebal = ["Width", "Thickness", "ConstructionThickness", "NominalWidth"]
-             
+
         val_tebal = get_property_value(product, list_tebal)
 
         # D. AREA & VOLUME
@@ -129,14 +135,14 @@ def parse_all_objects(ifc_path):
         # Kita bisa estimasi Panjang = sqrt(Area) agar tidak 0, atau biarkan 0 jika user ingin akurasi.
         # Disini kita coba ambil sisi terpanjang jika Volume dan Tebal diketahui.
         if ifc_type == "IfcSlab":
-            # Jika tebal terdeteksi sangat besar (lebih dari 1 meter untuk lantai), 
+            # Jika tebal terdeteksi sangat besar (lebih dari 1 meter untuk lantai),
             # kemungkinan itu tertukar dengan Panjang/Lebar.
             if l_meter > 2.0 and p_meter < 1.0:
                 # Tukar nilai: Tebal jadi Panjang, Panjang (yang 0) jadi Tebal (estimasi standar 0.15m)
                 # Ini hacky, tapi membantu visualisasi jika data kotor.
                 p_meter = l_meter
                 l_meter = 0.15 # Default tebal plat beton jika tidak diketahui
-            
+
             # Jika Panjang masih 0, coba hitung dari Area (akar kuadrat sbg pendekatan)
             if p_meter == 0.0 and area_m2 > 0:
                 p_meter = round(math.sqrt(area_m2), 2)
@@ -144,7 +150,7 @@ def parse_all_objects(ifc_path):
         # KASUS UMUM: Kalkulasi Fallback Volume/Area
         if vol_m3 == 0.0 and p_meter > 0 and t_meter > 0 and l_meter > 0:
             vol_m3 = round(p_meter * t_meter * l_meter, 3)
-        
+
         if area_m2 == 0.0:
             if p_meter > 0 and t_meter > 0:
                 area_m2 = round(p_meter * t_meter, 3)
@@ -196,6 +202,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python parser.py <path_to_ifc>")
         sys.exit(1)
-    
+
     input_ifc = sys.argv[1]
     parse_all_objects(input_ifc)
