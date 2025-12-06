@@ -1,7 +1,10 @@
-# IFC Parsing API (FastAPI)
+# IFC to JSON API
+A FastAPI-based service for converting IFC files into structured JSON data using IfcOpenShell.
 
-API ini menerima file IFC dari Laravel, mem-parsing menggunakan ifcopenshell,
-dan menghasilkan JSON struktur bangunan.
+### Endpoints
+- `GET /` — API Status  
+- `POST /convert-ifc` — Upload IFC → JSON  
 
-## Menjalankan di lokal
-
+### Python Version
+Use **Python 3.11** (recommended)  
+Python 3.13 is not supported by IfcOpenShell.
