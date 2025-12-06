@@ -1,4 +1,4 @@
-fastapi
-uvicorn
-python-multipart
-ifcopenshell==0.7.0
+fastapi==0.123.10
+uvicorn==0.22.0
+python-multipart==0.0.20
+ifcopenshell==0.8.4

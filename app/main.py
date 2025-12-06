@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import tempfile
 import os
-from .ifc_processor import process_ifc
+from app.ifc_processor import process_ifc
 
 app = FastAPI(
     title="IFC to JSON Converter",
