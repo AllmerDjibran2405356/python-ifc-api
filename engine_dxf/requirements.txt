@@ -1,4 +1,0 @@
-ezdxf
-mysql-connector-python
-numpy
-pandas

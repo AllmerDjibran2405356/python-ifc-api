@@ -1,9 +1,0 @@
-ifcopenshell
-isodate
-lark
-numpy
-python-dateutil
-shapely
-typing-extensions
-flask
-scikit-learn
