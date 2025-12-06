@@ -1,15 +1,13 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from parser import parse_all_objects
 import tempfile
 import os
+import json
 
-app = FastAPI(
-    title="IFC Parser API",
-    version="1.0.0",
-)
+from parser import parse_all_objects  # parser kamu (adapted)
 
-# CORS untuk semua domain agar Laravel bisa request
+app = FastAPI(title="IFC Parser API")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,27 +15,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def home():
+    return {"status": "ok"}
+
 @app.post("/parse-ifc")
 async def parse_ifc(file: UploadFile = File(...)):
     """
-    API menerima file IFC → menyimpannya sementara → memanggil parser → retur JSON
+    Terima file IFC (upload), simpan sementara, parse dengan parser.py,
+    lalu kembalikan JSON array hasil parsing.
     """
-
-    # Simpan file sementara
+    # simpan file sementara
     with tempfile.NamedTemporaryFile(delete=False, suffix=".ifc") as tmp:
-        content = await file.read()
-        tmp.write(content)
+        tmp.write(await file.read())
         tmp_path = tmp.name
 
     try:
-        # Proses IFC
+        # parse_all_objects harus mengembalikan list/dict sesuai contoh JSON kamu
         result = parse_all_objects(tmp_path)
+
+        # Pastikan result dapat diserialisasi
         return result
 
     except Exception as e:
         return {"error": str(e)}
 
     finally:
-        # Hapus file sementara
-        if os.path.exists(tmp_path):
+        try:
             os.remove(tmp_path)
+        except:
+            pass
