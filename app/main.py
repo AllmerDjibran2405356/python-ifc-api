@@ -1,43 +1,38 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+# main.py
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
-import tempfile
 import os
-from app.ifc_processor import process_ifc
+import shutil
+from app.ifc_processor import parse_all_objects
 
-app = FastAPI(
-    title="IFC to JSON Converter",
-    version="1.0.0",
-    description="Convert IFC files to structured JSON using IfcOpenShell"
-)
+app = FastAPI()
 
-# Allow Laravel to access API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "Python IFC API is running"}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "temp_uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.post("/convert-ifc")
 async def convert_ifc(file: UploadFile = File(...)):
     try:
-        # Save IFC file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".ifc") as tmp:
-            tmp.write(await file.read())
-            tmp_path = tmp.name
+        # Simpan temp
+        temp_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(temp_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
 
-        # Process IFC
-        result = process_ifc(tmp_path)
+        # Convert IFC → ARRAY JSON
+        result_array = parse_all_objects(temp_path)
 
-        # Remove temp file
-        os.remove(tmp_path)
+        # Hapus file temp
+        os.remove(temp_path)
 
-        return JSONResponse(result)
+        # Kembalikan JSON ke Laravel
+        return JSONResponse({
+            "status": "success",
+            "data": result_array
+        })
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({
+            "status": "error",
+            "message": str(e)
+        }, status_code=500)
