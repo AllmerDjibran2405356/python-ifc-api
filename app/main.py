@@ -1,31 +1,27 @@
 # main.py
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+import tempfile
 import os
-import shutil
 from app.ifc_processor import parse_all_objects
 
 app = FastAPI()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "temp_uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 @app.post("/convert-ifc")
 async def convert_ifc(file: UploadFile = File(...)):
     try:
-        # Simpan temp
-        temp_path = os.path.join(UPLOAD_FOLDER, file.filename)
-        with open(temp_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        # Buat file tmp TANPA lock (Windows compatible)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".ifc") as tmp:
+            tmp.write(await file.read())
+            tmp.flush()
+            temp_path = tmp.name
 
-        # Convert IFC → ARRAY JSON
+        # Proses IFC
         result_array = parse_all_objects(temp_path)
 
-        # Hapus file temp
+        # Hapus file temp setelah selesai
         os.remove(temp_path)
 
-        # Kembalikan JSON ke Laravel
         return JSONResponse({
             "status": "success",
             "data": result_array
