@@ -7,6 +7,10 @@ from app.ifc_processor import parse_all_objects
 
 app = FastAPI()
 
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "ifc-api"}
+
 @app.post("/convert-ifc")
 async def convert_ifc(file: UploadFile = File(...)):
     try:
