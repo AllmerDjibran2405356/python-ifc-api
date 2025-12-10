@@ -32,10 +32,10 @@ Thumbs.db
 temp/
 tmp/
 
-# Uploads
-uploads/
-*.ifc
-
 # System
 System Volume Information/
 $RECYCLE.BIN/
+
+# Replit specific
+.replit
+replit.nix

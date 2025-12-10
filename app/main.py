@@ -9,11 +9,11 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "IFC API is running"}
+    return {"message": "IFC API is running", "status": "active"}
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return {"status": "healthy", "service": "ifc-processor"}
 
 @app.post("/convert-ifc")
 async def convert_ifc(file: UploadFile = File(...)):
