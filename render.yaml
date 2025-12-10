@@ -4,9 +4,7 @@ services:
     runtime: python
     region: singapore  # Lebih cepat untuk Indonesia
     plan: free
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt --timeout=300
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -w 2 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:10000 --timeout 120
     envVars:
       - key: PYTHON_VERSION
